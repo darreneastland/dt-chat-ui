@@ -66,11 +66,14 @@ if prompt:
             messages=messages
         )
         reply = response.choices[0].message.content
+        model_used = response.model
     except Exception as e:
         reply = f"⚠️ Error: {str(e)}"
+        model_used = "Unavailable"
 
-    # Display assistant response
+    # Display assistant response and model info
     st.chat_message("assistant").markdown(reply)
+    st.markdown(f"*Model used: `{model_used}`*")
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
 # === DISPLAY CHAT HISTORY ===
