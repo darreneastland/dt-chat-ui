@@ -3,7 +3,9 @@ import os
 import openai
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Pinecone as PineconeVectorStore
+from langchain.schema import Document
 from pinecone import Pinecone, ServerlessSpec
+from datetime import datetime
 
 # === CONFIGURATION ===
 st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
@@ -19,7 +21,12 @@ pc = Pinecone(api_key=pinecone_api_key)
 index = pc.Index("dt-knowledge")
 embedding_model = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_api_key)
 
+# Knowledge vectorstore (default namespace)
 vectorstore = PineconeVectorStore(index=index, embedding=embedding_model, text_key="text")
+
+# Memory vectorstore (dt-memory namespace)
+memory_namespace = "dt-memory"
+vectorstore_memory = PineconeVectorStore(index=index, embedding=embedding_model, text_key="text", namespace=memory_namespace)
 
 # === UI HEADER ===
 st.title("🧠 Darren's Digital Twin")
@@ -54,8 +61,8 @@ if "kryten_mode" not in st.session_state:
 system_prompt_base = (
     "You are the Digital Twin of Darren Eastland, a senior global IT executive with 25+ years’ experience.\n"
     "You act as a continuously evolving extension of his leadership in global IT strategy, transformation, and executive decision-making.\n"
-    "You now have access to a Pinecone memory store that contains Darren’s key reference documents, including strategic frameworks and the Digital Twin Charter.\n"
-    "You can use this memory to enrich your responses. Reference retrieved materials as needed, but do not speculate beyond them.\n\n"
+    "You now have access to two memory stores: one for Darren’s reference documents (e.g., the Charter) and one for persistent memory, which stores your own replies and Darren’s key insights over time.\n"
+    "Use both memory stores to enrich your responses. When relevant, recall past conversations and previously stated insights to maintain continuity.\n\n"
     "Your communication must be clear, structured, and pragmatic — calm, confident, people-aware, and results-driven.\n"
     "You operate across the following domains:\n"
     "- IT strategy & multi-year transformation planning\n"
@@ -83,19 +90,26 @@ if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # === MEMORY RETRIEVAL FROM PINECONE ===
+    # === RETRIEVE FROM BOTH MEMORY AND DOCUMENT STORE ===
     try:
-        results = vectorstore.similarity_search(prompt, k=4)
-        retrieved_chunks = "\n\n".join([doc.page_content for doc in results])
+        doc_results = vectorstore.similarity_search(prompt, k=4)
+        doc_chunks = "\n\n".join([doc.page_content for doc in doc_results])
     except Exception as e:
-        retrieved_chunks = f"⚠️ Pinecone retrieval failed: {str(e)}"
+        doc_chunks = f"⚠️ Pinecone (knowledge) retrieval failed: {str(e)}"
+
+    try:
+        memory_results = vectorstore_memory.similarity_search(prompt, k=3)
+        memory_chunks = "\n\n".join([doc.page_content for doc in memory_results])
+    except Exception as e:
+        memory_chunks = f"⚠️ Pinecone (memory) retrieval failed: {str(e)}"
 
     # === SYSTEM PROMPT CONSTRUCTION ===
     full_prompt = system_prompt_base
     if st.session_state.kryten_mode:
         full_prompt += "\nYou are currently in Kryten mode. Respond with robotic, overly literal, and excessively polite language."
 
-    full_prompt += f"\n\n---\nRetrieved Reference:\n{retrieved_chunks}\n---\n"
+    full_prompt += f"\n\n---\nRetrieved Reference Material:\n{doc_chunks}\n"
+    full_prompt += f"\n\n---\nRetrieved Persistent Memory:\n{memory_chunks}\n---\n"
 
     system_prompt = {"role": "system", "content": full_prompt}
 
@@ -120,6 +134,20 @@ if prompt:
     st.markdown(f"*Model used: `{model_used}`*")
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
+    # === STORE ASSISTANT MEMORY ===
+    try:
+        memory_entry = Document(
+            page_content=reply,
+            metadata={
+                "source": "dt-memory",
+                "timestamp": datetime.utcnow().isoformat(),
+                "prompt": prompt
+            }
+        )
+        vectorstore_memory.add_documents([memory_entry])
+    except Exception as e:
+        st.warning(f"⚠️ Failed to save memory: {str(e)}")
+
 # === DISPLAY CHAT HISTORY ===
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -127,4 +155,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.3 – DT with Pinecone Memory – Darren Eastland")
+st.caption("v1.4 – DT with Persistent Memory – Darren Eastland")
