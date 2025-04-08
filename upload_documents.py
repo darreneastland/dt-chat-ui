@@ -1,95 +1,58 @@
 import streamlit as st
-import pinecone
-import openai
 import os
-from docx import Document
-import PyPDF2
 import tempfile
-from typing import List
+from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores import Pinecone
+import pinecone
 
-# === CONFIG ===
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY") or st.secrets["PINECONE_API_KEY"]
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or st.secrets["OPENAI_API_KEY"]
-INDEX_NAME = "dt-knowledge"
-ENVIRONMENT = "us-east-1"
+# === Streamlit UI ===
+st.set_page_config(page_title="Upload Documents to DT", page_icon="📁", layout="centered")
+st.title("📁 Upload Reference Documents to DT")
+st.markdown("Drop documents here to add to the Digital Twin's memory.")
 
-pinecone.init(api_key=PINECONE_API_KEY, environment=ENVIRONMENT)
-index = pinecone.Index(INDEX_NAME)
-openai.api_key = OPENAI_API_KEY
+# === API Keys ===
+openai_api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+pinecone_api_key = os.getenv("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
+pinecone_env = "us-east-1"  # Replace if different
+pinecone_index_name = "dt-knowledge"
 
-# === FUNCTIONS ===
-def load_docx(file) -> str:
-    doc = Document(file)
-    return "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+# === Upload & Process ===
+uploaded_files = st.file_uploader("Upload documents", type=["pdf", "docx", "txt"], accept_multiple_files=True)
 
-def load_pdf(file) -> str:
-    reader = PyPDF2.PdfReader(file)
-    return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+if uploaded_files and openai_api_key and pinecone_api_key:
+    with st.spinner("🔍 Processing documents..."):
+        all_docs = []
 
-def chunk_text(text: str, chunk_size=500, overlap=50) -> List[str]:
-    words = text.split()
-    return [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size - overlap)]
+        for uploaded_file in uploaded_files:
+            file_ext = os.path.splitext(uploaded_file.name)[-1].lower()
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
+                tmp_file.write(uploaded_file.getvalue())
+                tmp_file_path = tmp_file.name
 
-def embed_texts(text_chunks: List[str]) -> List[List[float]]:
-    response = openai.Embedding.create(
-        input=text_chunks,
-        model="text-embedding-ada-002"
-    )
-    return [data["embedding"] for data in response["data"]]
-
-def upload_to_pinecone(text_chunks: List[str], embeddings: List[List[float]], metadata_src: str):
-    vectors = [
-        {
-            "id": f"{metadata_src}_{i}",
-            "values": emb,
-            "metadata": {"text": chunk, "source": metadata_src}
-        }
-        for i, (chunk, emb) in enumerate(zip(text_chunks, embeddings))
-    ]
-    index.upsert(vectors)
-
-# === STREAMLIT UI ===
-st.title("📚 Upload Knowledge to DT")
-st.markdown("Upload the Digital Twin Charter or other files to inject them into DT memory.")
-
-# Auto-load charter from local path
-if "charter_uploaded" not in st.session_state:
-    try:
-        with open("Digital_Twin_Charter_v2_Revised.docx", "rb") as f:
-            charter_text = load_docx(f)
-        st.success("Digital Twin Charter loaded.")
-        chunks = chunk_text(charter_text)
-        embeddings = embed_texts(chunks)
-        upload_to_pinecone(chunks, embeddings, "charter")
-        st.session_state.charter_uploaded = True
-    except Exception as e:
-        st.warning(f"Charter not uploaded automatically: {e}")
-
-# Drag & Drop
-uploaded_files = st.file_uploader("Drop files here", type=["pdf", "docx", "txt"], accept_multiple_files=True)
-if uploaded_files:
-    for file in uploaded_files:
-        file_type = file.name.split(".")[-1]
-        try:
-            with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                tmp.write(file.read())
-                tmp_path = tmp.name
-
-            if file_type == "pdf":
-                content = load_pdf(tmp_path)
-            elif file_type == "docx":
-                content = load_docx(tmp_path)
-            elif file_type == "txt":
-                with open(tmp_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+            if file_ext == ".pdf":
+                loader = PyPDFLoader(tmp_file_path)
+            elif file_ext == ".docx":
+                loader = Docx2txtLoader(tmp_file_path)
+            elif file_ext == ".txt":
+                loader = TextLoader(tmp_file_path)
             else:
-                st.error(f"Unsupported file type: {file_type}")
+                st.warning(f"Unsupported file type: {file_ext}")
                 continue
 
-            chunks = chunk_text(content)
-            embeddings = embed_texts(chunks)
-            upload_to_pinecone(chunks, embeddings, file.name)
-            st.success(f"Uploaded and embedded {file.name}")
+            docs = loader.load()
+            all_docs.extend(docs)
 
-        except Exception as e:
-            st.error(f"Error processing {file.name}: {e}")
+        # === Split & Embed ===
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
+        chunks = text_splitter.split_documents(all_docs)
+
+        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+        pinecone.init(api_key=pinecone_api_key, environment=pinecone_env)
+        index = Pinecone.from_documents(documents=chunks, embedding=embeddings, index_name=pinecone_index_name)
+
+        st.success(f"✅ {len(uploaded_files)} document(s) uploaded and embedded into DT memory.")
+
+elif not openai_api_key or not pinecone_api_key:
+    st.error("Missing API keys. Please ensure your `OPENAI_API_KEY` and `PINECONE_API_KEY` are set.")
