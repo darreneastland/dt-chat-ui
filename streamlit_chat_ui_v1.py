@@ -155,4 +155,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.4 – DT with Persistent Memory – Darren Eastland")
+st.caption("v1.41 – DT with Persistent Memory – Darren Eastland")
