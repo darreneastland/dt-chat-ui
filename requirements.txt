@@ -1,10 +1,16 @@
+# Core platform
 streamlit==1.32.2
-openai==0.28.1
+openai==1.14.2
 langchain==0.1.14
 pinecone-client==3.0.2
+
+# Embedding tokenizer
+tiktoken==0.5.1
 
 # Document loaders & parsers
 pypdf==3.9.1
 pdfminer.six==20221105
 python-docx
-tiktoken==0.5.1
+
+# Required for langchain.document_loaders to work
+langchain-community==0.0.30
