@@ -3,4 +3,5 @@ openai==0.28
 pinecone-client
 python-docx
 PyPDF2
-langchain
+langchain_community
+
