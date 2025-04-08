@@ -1,12 +1,25 @@
 import streamlit as st
-import openai
 import os
-
-# === MUST BE FIRST STREAMLIT COMMAND ===
-st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
+import openai
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import Pinecone as PineconeVectorStore
+from pinecone import Pinecone, ServerlessSpec
 
 # === CONFIGURATION ===
-openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
+
+openai_api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+pinecone_api_key = os.getenv("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
+pinecone_env = os.getenv("PINECONE_ENV") or st.secrets.get("PINECONE_ENV")
+
+openai.api_key = openai_api_key
+
+# === INITIALISE VECTORSTORE ===
+pc = Pinecone(api_key=pinecone_api_key)
+index = pc.Index("dt-knowledge")
+embedding_model = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_api_key)
+
+vectorstore = PineconeVectorStore(index=index, embedding=embedding_model, text_key="text")
 
 # === UI HEADER ===
 st.title("🧠 Darren's Digital Twin")
@@ -30,18 +43,20 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# === SESSION STATE INITIALISATION ===
+# === SESSION STATE ===
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "kryten_mode" not in st.session_state:
     st.session_state.kryten_mode = False
 
-# === SYSTEM PROMPT BASE ===
+# === SYSTEM PROMPT BASE WITH PINECONE AWARENESS ===
 system_prompt_base = (
     "You are the Digital Twin of Darren Eastland, a senior global IT executive with 25+ years’ experience.\n"
-    "You act as a continuously evolving extension of his leadership in global IT strategy, transformation, and executive decision-making.\n\n"
-    "Your communication must be clear, structured, and pragmatic — calm, confident, people-aware, and results-driven.\n\n"
+    "You act as a continuously evolving extension of his leadership in global IT strategy, transformation, and executive decision-making.\n"
+    "You now have access to a Pinecone memory store that contains Darren’s key reference documents, including strategic frameworks and the Digital Twin Charter.\n"
+    "You can use this memory to enrich your responses. Reference retrieved materials as needed, but do not speculate beyond them.\n\n"
+    "Your communication must be clear, structured, and pragmatic — calm, confident, people-aware, and results-driven.\n"
     "You operate across the following domains:\n"
     "- IT strategy & multi-year transformation planning\n"
     "- Infrastructure modernisation, cloud, and ITSM (e.g., ServiceNow, ITIL, SAFe)\n"
@@ -52,31 +67,35 @@ system_prompt_base = (
     "- ITFM, cost optimisation, value realisation\n"
     "- Org design, capability uplift, location strategies\n"
     "- CxO and employee council engagement\n\n"
-    "You are also known as 'DT' — Darren's Digital Twin. You should respond naturally when addressed as DT.\n\n"
-    "You support Darren by communicating with clarity, pragmatism, and strategic insight. "
+    "You are also known as 'DT' — Darren's Digital Twin. Respond naturally when addressed as DT.\n"
     "When unsure, ask clarifying questions. Stay within enterprise IT leadership scope. Do not speculate.\n"
 )
 
 # === CHAT INPUT ===
 prompt = st.chat_input("Ask the Digital Twin something...")
+
 if prompt:
-    # Kryten Mode Toggle
     if "enable kryten mode" in prompt.lower():
         st.session_state.kryten_mode = True
     elif "disable kryten mode" in prompt.lower():
         st.session_state.kryten_mode = False
 
-    # Display user message
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Build full system prompt
+    # === MEMORY RETRIEVAL FROM PINECONE ===
+    try:
+        results = vectorstore.similarity_search(prompt, k=4)
+        retrieved_chunks = "\n\n".join([doc.page_content for doc in results])
+    except Exception as e:
+        retrieved_chunks = f"⚠️ Pinecone retrieval failed: {str(e)}"
+
+    # === SYSTEM PROMPT CONSTRUCTION ===
     full_prompt = system_prompt_base
     if st.session_state.kryten_mode:
-        full_prompt += (
-            "\nYou are currently in Kryten mode. "
-            "Respond with a robotic, overly literal, formal tone, and excessive politeness — like Kryten from Red Dwarf."
-        )
+        full_prompt += "\nYou are currently in Kryten mode. Respond with robotic, overly literal, and excessively polite language."
+
+    full_prompt += f"\n\n---\nRetrieved Reference:\n{retrieved_chunks}\n---\n"
 
     system_prompt = {"role": "system", "content": full_prompt}
 
@@ -93,10 +112,10 @@ if prompt:
         reply = response.choices[0].message.content
         model_used = response.model
     except Exception as e:
-        reply = f"⚠️ Error: {str(e)}"
+        reply = f"⚠️ Error during OpenAI call: {str(e)}"
         model_used = "Unavailable"
 
-    # Display assistant response
+    # === DISPLAY ASSISTANT REPLY ===
     st.chat_message("assistant").markdown(reply)
     st.markdown(f"*Model used: `{model_used}`*")
     st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -108,4 +127,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.2 – Digital Twin Chat Assistant – Darren Eastland")
+st.caption("v1.3 – DT with Pinecone Memory – Darren Eastland")
