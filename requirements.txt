@@ -4,4 +4,4 @@ pinecone-client
 python-docx
 PyPDF2
 langchain_community
-
+langchain
