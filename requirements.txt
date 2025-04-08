@@ -1,18 +1,16 @@
-# Core packages
 streamlit==1.32.2
 openai==1.14.2
 langchain==0.1.14
 pinecone-client==3.0.2
 
-# Tokenizer for OpenAI embeddings
-tiktoken==0.5.1
-
-# Document loaders and parsing
+# Document loaders & parsers
 pypdf==3.9.1
 pdfminer.six==20221105
 python-docx
 docx2txt==0.8
 
-# Langchain document loaders compatibility
+# Required for OpenAIEmbeddings
+tiktoken==0.5.1
 langchain-community==0.0.30
+
 
