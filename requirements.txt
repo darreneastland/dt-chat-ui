@@ -1,8 +1,9 @@
-python-docx
-langchain_community
-pypdf==3.9.1
-pdfminer.six==20221105
+streamlit==1.32.2
+openai==1.14.2
 langchain==0.1.14
 pinecone-client==3.0.2
-openai==1.14.2
-streamlit==1.32.2
+
+# Document loaders & parsers
+pypdf==3.9.1
+pdfminer.six==20221105
+python-docx
