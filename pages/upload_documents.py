@@ -1,58 +1,56 @@
 import streamlit as st
 import os
-import tempfile
-from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 from langchain.vectorstores import Pinecone
+from langchain.embeddings import OpenAIEmbeddings
 import pinecone
 
-# === Streamlit UI ===
-st.set_page_config(page_title="Upload Documents to DT", page_icon="📁", layout="centered")
+# === PAGE CONFIG ===
+st.set_page_config(page_title="Upload Reference Documents to DT", page_icon="📁")
 st.title("📁 Upload Reference Documents to DT")
 st.markdown("Drop documents here to add to the Digital Twin's memory.")
 
-# === API Keys ===
-openai_api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
-pinecone_api_key = os.getenv("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
-pinecone_env = "us-east-1"  # Replace if different
-pinecone_index_name = "dt-knowledge"
+# === FILE UPLOAD ===
+uploaded_file = st.file_uploader("Upload documents", type=["pdf", "docx", "txt"], label_visibility="collapsed")
 
-# === Upload & Process ===
-uploaded_files = st.file_uploader("Upload documents", type=["pdf", "docx", "txt"], accept_multiple_files=True)
+if uploaded_file is not None:
+    st.write(f"Uploaded: {uploaded_file.name}")
 
-if uploaded_files and openai_api_key and pinecone_api_key:
-    with st.spinner("🔍 Processing documents..."):
-        all_docs = []
+    # Save temporarily
+    file_path = os.path.join("/tmp", uploaded_file.name)
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
-        for uploaded_file in uploaded_files:
-            file_ext = os.path.splitext(uploaded_file.name)[-1].lower()
-            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
-                tmp_file.write(uploaded_file.getvalue())
-                tmp_file_path = tmp_file.name
+    # === LOAD DOCUMENT ===
+    try:
+        if uploaded_file.name.endswith(".pdf"):
+            loader = PyPDFLoader(file_path)
+        elif uploaded_file.name.endswith(".docx"):
+            loader = Docx2txtLoader(file_path)
+        elif uploaded_file.name.endswith(".txt"):
+            loader = TextLoader(file_path)
+        else:
+            st.error("Unsupported file type.")
+            st.stop()
 
-            if file_ext == ".pdf":
-                loader = PyPDFLoader(tmp_file_path)
-            elif file_ext == ".docx":
-                loader = Docx2txtLoader(tmp_file_path)
-            elif file_ext == ".txt":
-                loader = TextLoader(tmp_file_path)
-            else:
-                st.warning(f"Unsupported file type: {file_ext}")
-                continue
+        docs = loader.load()
 
-            docs = loader.load()
-            all_docs.extend(docs)
+        # === EMBEDDINGS AND PINECONE ===
+        openai_api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+        pinecone_api_key = os.getenv("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
+        pinecone_env = os.getenv("PINECONE_ENV") or st.secrets.get("PINECONE_ENV")
 
-        # === Split & Embed ===
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
-        chunks = text_splitter.split_documents(all_docs)
-
-        embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
         pinecone.init(api_key=pinecone_api_key, environment=pinecone_env)
-        index = Pinecone.from_documents(documents=chunks, embedding=embeddings, index_name=pinecone_index_name)
 
-        st.success(f"✅ {len(uploaded_files)} document(s) uploaded and embedded into DT memory.")
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=openai_api_key)
+        index_name = "dt-knowledge"
 
-elif not openai_api_key or not pinecone_api_key:
-    st.error("Missing API keys. Please ensure your `OPENAI_API_KEY` and `PINECONE_API_KEY` are set.")
+        vectorstore = Pinecone.from_documents(docs, embeddings, index_name=index_name)
+        st.success("✅ Document uploaded and indexed successfully!")
+
+    except Exception as e:
+        st.error(f"❌ Failed to process document: {str(e)}")
+
+# === FOOTER ===
+st.markdown("---")
+st.caption("v1.2 – Digital Twin Chat Assistant – Darren Eastland")
