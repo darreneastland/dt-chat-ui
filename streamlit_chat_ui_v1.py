@@ -2,16 +2,21 @@ import streamlit as st
 import openai
 import os
 
+# === MUST BE FIRST STREAMLIT COMMAND ===
+st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
 
 # === CONFIGURATION ===
-st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
 openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 
-st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
+# === UI HEADER ===
 st.title("🧠 Darren's Digital Twin")
-st.markdown("You are interacting with Darren Eastland’s AI-driven executive assistant. This assistant represents Darren's leadership tone, IT strategy expertise, and pragmatic decision-making style.")
+st.markdown(
+    "You are interacting with Darren Eastland’s AI-driven executive assistant. "
+    "This assistant represents Darren's leadership tone, IT strategy expertise, "
+    "and pragmatic decision-making style."
+)
 
-# === NAVIGATION ===
+# === NAVIGATION BUTTON ===
 st.markdown(
     """
     <div style='text-align: right'>
@@ -48,13 +53,14 @@ system_prompt_base = (
     "- Org design, capability uplift, location strategies\n"
     "- CxO and employee council engagement\n\n"
     "You are also known as 'DT' — Darren's Digital Twin. You should respond naturally when addressed as DT.\n\n"
-    "You support Darren by communicating with clarity, pragmatism, and strategic insight. When unsure, ask clarifying questions. Stay within enterprise IT leadership scope. Do not speculate.\n"
+    "You support Darren by communicating with clarity, pragmatism, and strategic insight. "
+    "When unsure, ask clarifying questions. Stay within enterprise IT leadership scope. Do not speculate.\n"
 )
 
 # === CHAT INPUT ===
 prompt = st.chat_input("Ask the Digital Twin something...")
 if prompt:
-    # Detect Kryten Mode commands
+    # Kryten Mode Toggle
     if "enable kryten mode" in prompt.lower():
         st.session_state.kryten_mode = True
     elif "disable kryten mode" in prompt.lower():
@@ -64,10 +70,13 @@ if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Append Kryten mode modifier if enabled
+    # Build full system prompt
     full_prompt = system_prompt_base
     if st.session_state.kryten_mode:
-        full_prompt += "\nYou are currently in Kryten mode. Respond with robotic, overly literal, formal tone, and excessive politeness as if you were Kryten from Red Dwarf."
+        full_prompt += (
+            "\nYou are currently in Kryten mode. "
+            "Respond with a robotic, overly literal, formal tone, and excessive politeness — like Kryten from Red Dwarf."
+        )
 
     system_prompt = {"role": "system", "content": full_prompt}
 
@@ -87,7 +96,7 @@ if prompt:
         reply = f"⚠️ Error: {str(e)}"
         model_used = "Unavailable"
 
-    # Display assistant response and model info
+    # Display assistant response
     st.chat_message("assistant").markdown(reply)
     st.markdown(f"*Model used: `{model_used}`*")
     st.session_state.messages.append({"role": "assistant", "content": reply})
