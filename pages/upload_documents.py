@@ -3,6 +3,7 @@ import os
 from pinecone import Pinecone as PineconeClient, ServerlessSpec
 from langchain.vectorstores import Pinecone
 from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 
 import pinecone
 
