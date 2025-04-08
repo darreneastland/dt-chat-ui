@@ -16,5 +16,3 @@ docx2txt==0.8
 # Langchain document loaders compatibility
 langchain-community==0.0.30
 
-# Force reinstallation (recommended)
---upgrade
