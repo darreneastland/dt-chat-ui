@@ -1,6 +1,6 @@
 streamlit
 openai==0.28
-pinecone-client
+pinecone-client==2.2.4
 python-docx
 PyPDF2
 langchain_community
