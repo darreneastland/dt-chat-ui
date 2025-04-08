@@ -1,8 +1,9 @@
 import streamlit as st
 import os
-from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from pinecone import Pinecone as PineconeClient, ServerlessSpec
 from langchain.vectorstores import Pinecone
 from langchain.embeddings import OpenAIEmbeddings
+
 import pinecone
 
 # === PAGE CONFIG ===
@@ -44,16 +45,19 @@ if uploaded_file is not None:
         from pinecone import Pinecone, ServerlessSpec
         import os
 
-        pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
-
+       
+        pc = PineconeClient(api_key=os.getenv("PINECONE_API_KEY"))
         index = pc.Index("dt-knowledge")  # or pc.index() if you're using pinecone-client <1.0
 
         
         embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=openai_api_key)
         index_name = "dt-knowledge"
 
-        vectorstore = Pinecone.from_documents(docs, embeddings, index_name=index_name)
-        st.success("✅ Document uploaded and indexed successfully!")
+        vectorstore = Pinecone.from_documents(
+        documents=docs,
+        embedding=OpenAIEmbeddings(openai_api_key=openai_api_key),
+        index_name="dt-knowledge"
+        )
 
     except Exception as e:
         st.error(f"❌ Failed to process document: {str(e)}")
