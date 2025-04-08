@@ -7,3 +7,4 @@ pinecone-client==3.0.2
 pypdf==3.9.1
 pdfminer.six==20221105
 python-docx
+tiktoken==0.5.1
