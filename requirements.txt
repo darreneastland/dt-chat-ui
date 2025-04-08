@@ -1,7 +1,8 @@
-streamlit
-openai==0.28
-pinecone-client==2.2.4
 python-docx
-PyPDF2
 langchain_community
-langchain
+pypdf==3.9.1
+pdfminer.six==20221105
+langchain==0.1.14
+pinecone-client==3.0.2
+openai==1.14.2
+streamlit==1.32.2
