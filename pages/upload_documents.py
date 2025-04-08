@@ -40,8 +40,15 @@ if uploaded_file is not None:
         pinecone_api_key = os.getenv("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
         pinecone_env = os.getenv("PINECONE_ENV") or st.secrets.get("PINECONE_ENV")
 
-        pinecone.init(api_key=pinecone_api_key, environment=pinecone_env)
+      
+        from pinecone import Pinecone, ServerlessSpec
+        import os
 
+        pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+
+        index = pc.Index("dt-knowledge")  # or pc.index() if you're using pinecone-client <1.0
+
+        
         embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=openai_api_key)
         index_name = "dt-knowledge"
 
