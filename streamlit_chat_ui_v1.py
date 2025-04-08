@@ -2,12 +2,28 @@ import streamlit as st
 import openai
 import os
 
+
 # === CONFIGURATION ===
+st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
 openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 
 st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
 st.title("🧠 Darren's Digital Twin")
 st.markdown("You are interacting with Darren Eastland’s AI-driven executive assistant. This assistant represents Darren's leadership tone, IT strategy expertise, and pragmatic decision-making style.")
+
+# === NAVIGATION ===
+st.markdown(
+    """
+    <div style='text-align: right'>
+        <a href="/upload_documents" target="_self" style="text-decoration: none;">
+            <button style="padding:6px 12px; background-color:#f63366; color:white; border:none; border-radius:4px; cursor:pointer;">
+                📁 Upload Docs
+            </button>
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # === SESSION STATE INITIALISATION ===
 if "messages" not in st.session_state:
