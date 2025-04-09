@@ -57,12 +57,17 @@ system_prompt_base = (
 # === CHAT INPUT ===
 prompt = st.chat_input("Ask the Digital Twin something...")
 
+# === DISPLAY CHAT HISTORY BEFORE ANY NEW INPUT/UPLOAD ===
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
 # === DOCUMENT UPLOAD CONTROLS BELOW CHAT ===
 uploaded_file = None
 extracted_text = ""
 split_docs = []
 
-with st.expander("📎 Upload a document to use in this chat"):
+with st.expander("📎 Upload a document to use in this chat", expanded=False):
     uploaded_file = st.file_uploader("Drop a file here", type=["pdf", "docx", "txt"])
     store_in_memory = st.checkbox("Store in DT persistent memory", value=True)
     store_in_knowledge = st.checkbox("Store in reference knowledge base", value=False)
@@ -148,11 +153,6 @@ if prompt:
         except Exception as e:
             st.warning(f"⚠️ Failed to store document: {e}")
 
-# === CHAT HISTORY ===
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.52 – DT with Chat File Upload – Darren Eastland")
+st.caption("v1.53 – DT with Chat File Upload (Improved Layout) – Darren Eastland")
