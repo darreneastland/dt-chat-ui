@@ -49,27 +49,30 @@ with st.sidebar:
 
         if loader:
             split_docs = loader.load_and_split()
-            extracted_text = "\n\n".join([doc.page_content for doc in split_docs[:3]])  # Preview first few chunks
+            extracted_text = "\n\n".join([doc.page_content for doc in split_docs[:3]])
 
-            summary_snippet = extracted_text[:1000]  # Keep summary concise
-
-            file_summary_prompt = (
-                f"📎 I’ve received the file `{uploaded_file.name}`.\n\n"
-                f"Here’s a preview of its content:\n\n"
-                f"---\n{summary_snippet}\n---\n\n"
-                "How would you like me to proceed?\n"
+            interpretation_prompt = (
+                f"I've received a document titled `{uploaded_file.name}`.\n\n"
+                f"Here's a brief preview of its content:\n---\n{extracted_text[:1000]}\n---\n\n"
+                "Please interpret this content and let me know what you’d like to do next:\n"
                 "- Store in DT persistent memory\n"
-                "- Store in the reference knowledge base\n"
-                "- Use just for this session\n"
-                "- Ignore it\n\n"
-                "Just reply with your instruction."
+                "- Add to reference knowledge base\n"
+                "- Use only in this chat\n"
+                "- Ignore for now"
             )
 
+            # Send file context and prompt into the conversation
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": file_summary_prompt
+                "content": interpretation_prompt
             })
 
+            # Cache for later use if user gives instruction
+            st.session_state.last_uploaded_file = {
+                "name": uploaded_file.name,
+                "docs": split_docs,
+                "text": extracted_text
+            }
 
 # === UI HEADER ===
 st.title("🧠 Darren's Digital Twin")
@@ -195,4 +198,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.58 – DT with Sidebar Upload – Darren Eastland")
+st.caption("v1.59 – DT with Sidebar Upload – Darren Eastland")
