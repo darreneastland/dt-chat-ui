@@ -1,11 +1,14 @@
 import streamlit as st
 import os
+from datetime import datetime
 from pinecone import Pinecone as PineconeClient, ServerlessSpec
 from langchain.vectorstores import Pinecone  # avoid name clash
 from langchain.embeddings import OpenAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
 
 # === PAGE CONFIG ===
 st.set_page_config(page_title="Upload Reference Documents to DT", page_icon="📁")
@@ -33,6 +36,14 @@ if uploaded_files:
         )
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=openai_api_key)
+    llm = ChatOpenAI(model_name="gpt-4", temperature=0.3, openai_api_key=openai_api_key)
+    tagging_prompt = PromptTemplate.from_template("""
+    Given the following text, classify its content into relevant high-level tags that could help categorize the document. Return a comma-separated list of tags only.
+    
+    TEXT:
+    {chunk}
+    """)
+    tagger_chain = LLMChain(llm=llm, prompt=tagging_prompt)
 
     for uploaded_file in uploaded_files:
         st.write(f"Uploaded: {uploaded_file.name}")
@@ -51,35 +62,34 @@ if uploaded_files:
                 st.error(f"Unsupported file type: {uploaded_file.name}")
                 continue
 
-            raw_docs = loader.load()
+            docs = loader.load()
             splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            split_docs = splitter.split_documents(raw_docs)
+            split_docs = splitter.split_documents(docs)
 
-            # Attach metadata to each document chunk
-            enriched_docs = [
-                Document(
-                    page_content=doc.page_content,
-                    metadata={
-                        "source_file": uploaded_file.name,
-                        "uploaded_by": "Darren Eastland",
-                        "file_type": uploaded_file.name.split(".")[-1],
-                        "chunk_index": i
-                    }
-                )
-                for i, doc in enumerate(split_docs)
-            ]
+            timestamp = datetime.utcnow().isoformat()
+            inferred_type = "strategy" if "strategy" in uploaded_file.name.lower() else "general"
+
+            for doc in split_docs:
+                tag_response = tagger_chain.run(chunk=doc.page_content[:1000])
+                doc.metadata.update({
+                    "source_file": uploaded_file.name,
+                    "uploaded_by": "Darren Eastland",
+                    "uploaded_at": timestamp,
+                    "document_type": inferred_type,
+                    "tags": tag_response
+                })
 
             Pinecone.from_documents(
-                documents=enriched_docs,
+                documents=split_docs,
                 embedding=embeddings,
                 index_name=index_name
             )
 
-            st.success(f"✅ {uploaded_file.name} embedded and uploaded with metadata to DT memory.")
+            st.success(f"✅ {uploaded_file.name} embedded and uploaded to DT memory with AI-generated tags.")
 
         except Exception as e:
             st.error(f"❌ Failed to process {uploaded_file.name}: {str(e)}")
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.24 – Multi-file Upload + Metadata – Digital Twin Chat Assistant – Darren Eastland")
+st.caption("v1.25 – Multi-file Upload with AI Metadata Tagging – Digital Twin Chat Assistant – Darren Eastland")
