@@ -29,11 +29,46 @@ openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 with st.sidebar:
     st.markdown("### 📎 Upload a document to use in this chat")
     uploaded_file = st.file_uploader("Drop a file here", type=["pdf", "docx", "txt"])
-    file_action = st.radio(
-    f"What should DT do with `{uploaded_file.name}`?",
-    ["Use only in this chat", "Store in DT persistent memory", "Store in reference knowledge base", "Ignore"],
-    index=0
-)
+    extracted_text = ""
+    split_docs = []
+
+    if uploaded_file:
+        file_path = os.path.join("/tmp", uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        if uploaded_file.name.endswith(".pdf"):
+            loader = PyPDFLoader(file_path)
+        elif uploaded_file.name.endswith(".docx"):
+            loader = Docx2txtLoader(file_path)
+        elif uploaded_file.name.endswith(".txt"):
+            loader = TextLoader(file_path)
+        else:
+            loader = None
+            st.warning("Unsupported file type.")
+
+        if loader:
+            split_docs = loader.load_and_split()
+            extracted_text = "\n\n".join([doc.page_content for doc in split_docs[:3]])  # Preview first few chunks
+
+            summary_snippet = extracted_text[:1000]  # Keep summary concise
+
+            file_summary_prompt = (
+                f"📎 I’ve received the file `{uploaded_file.name}`.\n\n"
+                f"Here’s a preview of its content:\n\n"
+                f"---\n{summary_snippet}\n---\n\n"
+                "How would you like me to proceed?\n"
+                "- Store in DT persistent memory\n"
+                "- Store in the reference knowledge base\n"
+                "- Use just for this session\n"
+                "- Ignore it\n\n"
+                "Just reply with your instruction."
+            )
+
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": file_summary_prompt
+            })
 
 
 # === UI HEADER ===
@@ -160,4 +195,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.57 – DT with Sidebar Upload – Darren Eastland")
+st.caption("v1.58 – DT with Sidebar Upload – Darren Eastland")
