@@ -3,6 +3,22 @@ import streamlit as st
 import openai
 import os
 from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import Pinecone
+from pinecone import Pinecone as PineconeClient
+
+# === INIT EMBEDDING AND VECTORSTORES ===
+openai_api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+pinecone_api_key = os.getenv("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
+pinecone_env = os.getenv("PINECONE_ENV") or st.secrets.get("PINECONE_ENV")
+
+pc = PineconeClient(api_key=pinecone_api_key)
+index = pc.Index("dt-knowledge")
+
+embedding_model = OpenAIEmbeddings(model="text-embedding-3-small", api_key=openai_api_key)
+
+vs_knowledge = Pinecone.from_existing_index(index_name="dt-knowledge", embedding=embedding_model, namespace="default")
+vs_memory = Pinecone.from_existing_index(index_name="dt-knowledge", embedding=embedding_model, namespace="dt-memory")
 
 # === PAGE SETUP ===
 st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
@@ -119,4 +135,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.55 – DT with Sidebar Upload – Darren Eastland")
+st.caption("v1.56 – DT with Sidebar Upload – Darren Eastland")
