@@ -20,13 +20,15 @@ pc = PineconeClient(api_key=pinecone_api_key)
 index = pc.Index("dt-knowledge")
 
 # === UI: Namespace Selection ===
-namespace = st.selectbox("Select memory namespace:", ["dt-memory", "default"])
-st.markdown(f"Viewing entries in namespace: `{namespace}`")
+ns_options = ["dt-memory", "(default)"]
+selected_ns = st.selectbox("Select memory namespace:", ns_options)
+namespace = None if selected_ns == "(default)" else selected_ns
+st.markdown(f"Viewing entries in namespace: `{selected_ns}`")
 
 # === FETCH VECTOR IDS ===
 try:
     stats = index.describe_index_stats()
-    vectors = stats["namespaces"].get(namespace, {}).get("vector_count", 0)
+    vectors = stats["namespaces"].get(namespace or "", {}).get("vector_count", 0)
     st.write(f"🧠 Total vectors stored: {vectors}")
 
     if vectors == 0:
@@ -34,10 +36,10 @@ try:
     else:
         st.subheader("📄 Sample Memory Chunks")
 
-        # Retrieve vector IDs (optional pagination or limit for large sets)
+        # Retrieve sample chunks by dummy query vector
         sample = index.query(vector=[0.0]*1536, top_k=10, namespace=namespace, include_metadata=True)
 
-        for i, match in enumerate(sample["matches"]):
+        for i, match in enumerate(sample.get("matches", [])):
             meta = match.get("metadata", {})
             chunk = meta.get("text", "(No text found)")
             st.markdown(f"**{i+1}.** {chunk[:300]}...")
@@ -46,4 +48,4 @@ except Exception as e:
     st.error(f"❌ Failed to fetch memory index: {e}")
 
 st.markdown("---")
-st.caption("v1.0 – DT Memory Viewer – Darren Eastland")
+st.caption("v1.1 – DT Memory Viewer (Namespace-aware) – Darren Eastland")
