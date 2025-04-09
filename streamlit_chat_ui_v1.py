@@ -34,9 +34,9 @@ st.title("🧠 Darren's Digital Twin")
 st.markdown("You are interacting with Darren Eastland’s AI-driven executive assistant.")
 
 # === FILE UPLOAD IN CHAT CONTEXT ===
-uploaded_file = st.file_uploader("📎 Upload a document to use in this chat", type=["pdf", "docx", "txt"], label_visibility="collapsed")
-store_in_memory = st.checkbox("Store in DT persistent memory", value=True)
-store_in_knowledge = st.checkbox("Store in reference knowledge base", value=False)
+# uploaded_file = st.file_uploader("📎 Upload a document to use in this chat", type=["pdf", "docx", "txt"], label_visibility="collapsed")
+# store_in_memory = st.checkbox("Store in DT persistent memory", value=True)
+# store_in_knowledge = st.checkbox("Store in reference knowledge base", value=False)
 
 extracted_text = ""
 
@@ -84,6 +84,12 @@ system_prompt_base = (
 
 # === CHAT INPUT ===
 prompt = st.chat_input("Ask the Digital Twin something...")
+
+# === DOCUMENT UPLOAD CONTROLS ===
+with st.expander("📎 Upload a document to use in this chat"):
+    uploaded_file = st.file_uploader("Drop a file here", type=["pdf", "docx", "txt"])
+    store_in_memory = st.checkbox("Store in DT persistent memory", value=True)
+    store_in_knowledge = st.checkbox("Store in reference knowledge base", value=False)
 
 if prompt:
     st.chat_message("user").markdown(prompt)
@@ -153,4 +159,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.5 – DT with Chat File Upload – Darren Eastland")
+st.caption("v1.51 – DT with Chat File Upload – Darren Eastland")
