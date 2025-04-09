@@ -22,8 +22,7 @@ vs_memory = Pinecone.from_existing_index(index_name="dt-knowledge", embedding=em
 
 # === PAGE SETUP ===
 st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
-
-openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+openai.api_key = openai_api_key
 
 # === SIDEBAR FILE UPLOAD ===
 with st.sidebar:
@@ -51,23 +50,42 @@ with st.sidebar:
             split_docs = loader.load_and_split()
             extracted_text = "\n\n".join([doc.page_content for doc in split_docs[:3]])
 
-            interpretation_prompt = (
-                f"I've received a document titled `{uploaded_file.name}`.\n\n"
-                f"Here's a brief preview of its content:\n---\n{extracted_text[:1000]}\n---\n\n"
-                "Please interpret this content and let me know what you’d like to do next:\n"
-                "- Store in DT persistent memory\n"
-                "- Add to reference knowledge base\n"
-                "- Use only in this chat\n"
-                "- Ignore for now"
-            )
+            try:
+                interpretation_system_prompt = {
+                    "role": "system",
+                    "content": (
+                        "You are Darren Eastland's Digital Twin (DT) — a seasoned IT executive assistant. "
+                        "You have just received a document. Your job is to:\n"
+                        "- Understand the document's purpose and content\n"
+                        "- Summarize it concisely (bullet points if needed)\n"
+                        "- Recommend the most appropriate next action:\n"
+                        "  • Store in persistent memory\n"
+                        "  • Add to knowledge base\n"
+                        "  • Use in current session only\n"
+                        "  • Or ignore it\n\n"
+                        "Respond in a calm, confident, and professional tone as DT. Be helpful and proactive."
+                    )
+                }
 
-            # Send file context and prompt into the conversation
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": interpretation_prompt
-            })
+                interpretation_user_prompt = {
+                    "role": "user",
+                    "content": (
+                        f"The user has uploaded a document titled `{uploaded_file.name}`. "
+                        f"Here is the extracted content:\n\n{extracted_text[:2500]}"
+                    )
+                }
 
-            # Cache for later use if user gives instruction
+                interpretation_response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[interpretation_system_prompt, interpretation_user_prompt]
+                )
+
+                interpreted_reply = interpretation_response.choices[0].message.content
+                st.session_state.messages.append({"role": "assistant", "content": interpreted_reply})
+
+            except Exception as e:
+                st.warning(f"⚠️ Error interpreting uploaded file: {e}")
+
             st.session_state.last_uploaded_file = {
                 "name": uploaded_file.name,
                 "docs": split_docs,
@@ -108,31 +126,8 @@ system_prompt_base = (
     "When unsure, ask clarifying questions. Stay within enterprise IT leadership scope. Do not speculate.\n"
 )
 
-
 # === PROMPT ===
 prompt = st.chat_input("Ask the Digital Twin something...")
-
-# === FILE PROCESSING ===
-extracted_text = ""
-split_docs = []
-if uploaded_file:
-    file_path = os.path.join("/tmp", uploaded_file.name)
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-
-    if uploaded_file.name.endswith(".pdf"):
-        loader = PyPDFLoader(file_path)
-    elif uploaded_file.name.endswith(".docx"):
-        loader = Docx2txtLoader(file_path)
-    elif uploaded_file.name.endswith(".txt"):
-        loader = TextLoader(file_path)
-    else:
-        loader = None
-        st.warning("Unsupported file type.")
-
-    if loader:
-        split_docs = loader.load_and_split()
-        extracted_text = "\n\n".join([doc.page_content for doc in split_docs[:3]])
 
 # === CHAT HANDLING ===
 if prompt:
@@ -159,8 +154,9 @@ if prompt:
 
     full_prompt += f"\n\n---\nContext from Reference Documents:\n{doc_context}"
     full_prompt += f"\n\n---\nContext from Persistent Memory:\n{mem_context}"
-    if extracted_text:
-        full_prompt += f"\n\n---\nNew Uploaded Document Context:\n{extracted_text}"
+
+    if "last_uploaded_file" in st.session_state:
+        full_prompt += f"\n\n---\nMost Recent Uploaded Document Context:\n{st.session_state.last_uploaded_file['text']}"
 
     system_prompt = {"role": "system", "content": full_prompt}
 
@@ -177,20 +173,6 @@ if prompt:
     st.markdown(f"*Model used: `{model_used}`*")
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
-    if uploaded_file and (store_in_memory or store_in_knowledge):
-        targets = []
-        if store_in_memory:
-            targets.append(("dt-memory", vs_memory))
-        if store_in_knowledge:
-            targets.append(("default", vs_knowledge))
-
-        try:
-            for ns, vectorstore in targets:
-                vectorstore.add_documents(split_docs)
-            st.success("✅ Document saved to selected memory store(s).")
-        except Exception as e:
-            st.warning(f"⚠️ Failed to store document: {e}")
-
 # === CHAT HISTORY ===
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -198,4 +180,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.59 – DT with Sidebar Upload – Darren Eastland")
+st.caption("v1.60 – DT interprets uploaded files and recommends action – Darren Eastland")
