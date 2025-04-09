@@ -9,6 +9,14 @@ from pinecone import Pinecone, ServerlessSpec
 # === PAGE CONFIG ===
 st.set_page_config(page_title="Darren's Digital Twin", page_icon="🧠", layout="centered")
 
+# === SIDEBAR FILE UPLOAD ===
+with st.sidebar:
+    st.markdown("### 📎 Upload a document to use in this chat")
+    uploaded_file = st.file_uploader("Drop a file here", type=["pdf", "docx", "txt"])
+    store_in_memory = st.checkbox("Store in DT persistent memory", value=True)
+    store_in_knowledge = st.checkbox("Store in reference knowledge base", value=False)
+
+
 # === API KEYS ===
 openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 pinecone_api_key = os.getenv("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
@@ -155,4 +163,4 @@ if prompt:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.53 – DT with Chat File Upload (Improved Layout) – Darren Eastland")
+st.caption("v1.54 – DT with Chat File Upload (Improved Layout) – Darren Eastland")
