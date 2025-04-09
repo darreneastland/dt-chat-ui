@@ -29,8 +29,12 @@ openai.api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 with st.sidebar:
     st.markdown("### 📎 Upload a document to use in this chat")
     uploaded_file = st.file_uploader("Drop a file here", type=["pdf", "docx", "txt"])
-    store_in_memory = st.checkbox("Store in DT persistent memory", value=True)
-    store_in_knowledge = st.checkbox("Store in reference knowledge base", value=False)
+    file_action = st.radio(
+    f"What should DT do with `{uploaded_file.name}`?",
+    ["Use only in this chat", "Store in DT persistent memory", "Store in reference knowledge base", "Ignore"],
+    index=0
+)
+
 
 # === UI HEADER ===
 st.title("🧠 Darren's Digital Twin")
@@ -156,4 +160,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.56 – DT with Sidebar Upload – Darren Eastland")
+st.caption("v1.57 – DT with Sidebar Upload – Darren Eastland")
