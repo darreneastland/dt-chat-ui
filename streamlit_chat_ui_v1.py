@@ -160,15 +160,34 @@ system_prompt_base = (
 st.title("🧠 Darren's Digital Twin")
 prompt = st.chat_input("Ask the Digital Twin something...")
 
-# === HANDLE CHAT ===
+# === CHAT HANDLING ===
 if prompt:
+    # Triggered Summary Mode if specific phrases match
+    trigger_phrases = [
+        "summarize today",
+        "what have we done today",
+        "give me a recap",
+        "summarize what we've discussed today"
+    ]
+
+    if prompt.strip().lower() in trigger_phrases:
+        summary_history = st.session_state.messages[-10:]  # Limit to last 10 messages
+        formatted_log = "\n".join([
+            f"**{m['role'].capitalize()}**: {m['content']}" for m in summary_history
+        ])
+
+        prompt = (
+            "Please provide a clear and concise summary of the following interaction "
+            "between Darren and his Digital Twin. Focus on key topics discussed, decisions made, and any proposed next steps.\n\n"
+            f"{formatted_log}"
+        )
+
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Add memory context
+    # === CONTEXT RETRIEVAL ===
     doc_context = ""
     mem_context = ""
-
     try:
         doc_chunks = vs_knowledge.similarity_search(prompt, k=3)
         doc_context = "\n\n".join([doc.page_content for doc in doc_chunks])
@@ -181,20 +200,30 @@ if prompt:
     except Exception as e:
         st.warning(f"⚠️ Memory retrieval failed: {e}")
 
+    # === SYSTEM PROMPT WITH FILE CONTEXT ===
     full_prompt = system_prompt_base
+    if st.session_state.kryten_mode:
+        full_prompt += "\nRespond in Kryten mode: overly literal, formal, and excessively polite."
+
     full_prompt += f"\n\n---\nContext from Reference Documents:\n{doc_context}"
     full_prompt += f"\n\n---\nContext from Persistent Memory:\n{mem_context}"
 
+    # Include last uploaded file summary, if available
     if "last_uploaded_file" in st.session_state:
-        file_info = st.session_state["last_uploaded_file"]
-        where = ", ".join(file_info.get("stored_in", []))
-        full_prompt += (
-            f"\n\n---\nMost Recent Uploaded Document:\n"
-            f"Filename: {file_info['name']}\n"
-            f"Storage Location: {where or 'Not Stored'}\n"
-            f"Extracted Content (first 1000 chars):\n{file_info['text'][:1000]}"
-        )
+        try:
+            file_info = st.session_state["last_uploaded_file"]
+            summary = file_info.get("summary", "")
+            where = ", ".join(file_info.get("stored_in", []))
+            full_prompt += (
+                f"\n\n---\nMost Recent Uploaded Document:\n"
+                f"Filename: {file_info['name']}\n"
+                f"Storage Location: {where or 'Not Stored'}\n"
+                f"Extracted Content (first 1000 chars):\n{file_info['text'][:1000]}"
+            )
+        except Exception as e:
+            st.warning(f"⚠️ Failed to inject recent file info into context: {e}")
 
+    # === CHAT COMPLETION ===
     try:
         messages = [{"role": "system", "content": full_prompt}] + [
             {"role": m["role"], "content": m["content"]} for m in st.session_state.messages
@@ -210,10 +239,11 @@ if prompt:
     st.markdown(f"*Model used: `{model_used}`*")
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
-# === CHAT HISTORY ===
+# === DISPLAY CHAT HISTORY ===
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+
 
 st.markdown("---")
 st.caption("v1.70 – DT Persistent File Awareness & Memory Fix – Darren Eastland")
