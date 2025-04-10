@@ -221,12 +221,16 @@ if prompt:
     )
     full_prompt += context_string
 
+   # Join all target namespaces into a string for display
+    where = ", ".join(target_namespaces)
+
     full_prompt += (
         f"\n\n---\nMost Recent Uploaded Document:\n"
         f"Filename: {file_info['name']}\n"
         f"Storage Location: {where}\n"
         f"Extracted Content (first 1000 chars):\n{file_info['text'][:1000]}"
     )
+
 
     try:
         messages = [system_prompt] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
@@ -249,4 +253,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.63 – DT interprets uploaded files and recommends action – Darren Eastland")
+st.caption("v1.64 – DT interprets uploaded files and recommends action – Darren Eastland")
