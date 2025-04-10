@@ -86,11 +86,25 @@ with st.sidebar:
             except Exception as e:
                 st.warning(f"⚠️ Error interpreting uploaded file: {e}")
 
-            st.session_state.last_uploaded_file = {
-                "name": uploaded_file.name,
-                "docs": split_docs,
-                "text": extracted_text
-            }
+# Store memory tracking info
+stored_in = []
+
+try:
+    if "Persistent Memory" in interpreted_reply:
+        vs_memory.add_documents(split_docs)
+        stored_in.append("Persistent Memory")
+    if "Knowledge Base" in interpreted_reply:
+        vs_knowledge.add_documents(split_docs)
+        stored_in.append("Reference Knowledge")
+except Exception as e:
+    st.warning(f"⚠️ Failed to store document: {e}")
+
+st.session_state.last_uploaded_file = {
+    "name": uploaded_file.name,
+    "docs": split_docs,
+    "text": extracted_text,
+    "stored_in": stored_in
+}
 
 # === UI HEADER ===
 st.title("🧠 Darren's Digital Twin")
@@ -198,9 +212,16 @@ if prompt:
     full_prompt += f"\n\n---\nContext from Persistent Memory:\n{mem_context}"
 
     if "last_uploaded_file" in st.session_state:
-        full_prompt += f"\n\n---\nMost Recent Uploaded Document Context:\n{st.session_state.last_uploaded_file['text']}"
+if "last_uploaded_file" in st.session_state:
+    file_info = st.session_state.last_uploaded_file
+    where = ", ".join(file_info.get("stored_in", [])) or "Not stored"
 
-    system_prompt = {"role": "system", "content": full_prompt}
+    full_prompt += (
+        f"\n\n---\nMost Recent Uploaded Document:\n"
+        f"Filename: {file_info['name']}\n"
+        f"Storage Location: {where}\n"
+        f"Extracted Content (first 1000 chars):\n{file_info['text'][:1000]}"
+    )
 
     try:
         messages = [system_prompt] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
@@ -223,4 +244,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.62 – DT interprets uploaded files and recommends action – Darren Eastland")
+st.caption("v1.63 – DT interprets uploaded files and recommends action – Darren Eastland")
