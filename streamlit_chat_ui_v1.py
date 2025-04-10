@@ -212,9 +212,14 @@ if prompt:
     full_prompt += f"\n\n---\nContext from Persistent Memory:\n{mem_context}"
 
     if "last_uploaded_file" in st.session_state:
-if "last_uploaded_file" in st.session_state:
-    file_info = st.session_state.last_uploaded_file
-    where = ", ".join(file_info.get("stored_in", [])) or "Not stored"
+        file_info = st.session_state["last_uploaded_file"]
+        context_string = (
+            f"\n\n---\nNew File Uploaded During This Session:\n"
+            f"Filename: {file_info.get('name', 'Unknown')}\n"
+            f"Stored In: {file_info.get('location', 'N/A')}\n"
+            f"Extract Preview:\n{file_info.get('extract', '')[:1000]}"
+    )
+    full_prompt += context_string
 
     full_prompt += (
         f"\n\n---\nMost Recent Uploaded Document:\n"
