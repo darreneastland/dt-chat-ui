@@ -198,4 +198,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.60 – DT interprets uploaded files and recommends action – Darren Eastland")
+st.caption("v1.61 – DT interprets uploaded files and recommends action – Darren Eastland")
