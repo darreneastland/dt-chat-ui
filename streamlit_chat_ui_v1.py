@@ -212,13 +212,13 @@ if prompt:
     full_prompt += f"\n\n---\nContext from Persistent Memory:\n{mem_context}"
 
     if "last_uploaded_file" in st.session_state:
-    file_info = st.session_state["last_uploaded_file"]
-    stored_in = ", ".join(file_info.get("stored_in", [])) or "Not stored"
-    full_prompt += (
-        f"\n\n---\nMost Recent Uploaded Document:\n"
-        f"Filename: {file_info.get('name', 'Unknown')}\n"
-        f"Stored In: {stored_in}\n"
-        f"Extracted Content (first 1000 chars):\n{file_info.get('text', '')[:1000]}"
+        file_info = st.session_state["last_uploaded_file"]
+        stored_in = ", ".join(file_info.get("stored_in", [])) or "Not stored"
+        full_prompt += (
+            f"\n\n---\nMost Recent Uploaded Document:\n"
+            f"Filename: {file_info.get('name', 'Unknown')}\n"
+            f"Stored In: {stored_in}\n"
+            f"Extracted Content (first 1000 chars):\n{file_info.get('text', '')[:1000]}"
     )
    # Join all target namespaces into a string for display
     where = ", ".join(target_namespaces)
