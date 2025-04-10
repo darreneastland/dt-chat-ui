@@ -153,6 +153,26 @@ prompt = st.chat_input("Ask the Digital Twin something...")
 
 # === CHAT HANDLING ===
 if prompt:
+    # Triggered Summary Mode if specific phrases match
+    trigger_phrases = [
+        "summarize today",
+        "what have we done today",
+        "give me a recap",
+        "summarize what we've discussed today"
+    ]
+
+    if prompt.strip().lower() in trigger_phrases:
+        summary_history = st.session_state.messages[-10:]  # Limit to last 10 messages
+        formatted_log = "\n".join([
+            f"**{m['role'].capitalize()}**: {m['content']}" for m in summary_history
+        ])
+
+        prompt = (
+            "Please provide a clear and concise summary of the following interaction "
+            "between Darren and his Digital Twin. Focus on key topics discussed, decisions made, and any proposed next steps.\n\n"
+            f"{formatted_log}"
+        )
+
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
@@ -195,6 +215,7 @@ if prompt:
     st.markdown(f"*Model used: `{model_used}`*")
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
+
 # === CHAT HISTORY ===
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -202,4 +223,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.61 – DT interprets uploaded files and recommends action – Darren Eastland")
+st.caption("v1.62 – DT interprets uploaded files and recommends action – Darren Eastland")
