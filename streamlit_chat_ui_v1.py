@@ -211,15 +211,29 @@ if prompt:
     full_prompt += f"\n\n---\nContext from Reference Documents:\n{doc_context}"
     full_prompt += f"\n\n---\nContext from Persistent Memory:\n{mem_context}"
 
-    if "last_uploaded_file" in st.session_state:
+  if uploaded_file and "last_uploaded_file" in st.session_state:
+    try:
         file_info = st.session_state["last_uploaded_file"]
-        stored_in = ", ".join(file_info.get("stored_in", [])) or "Not stored"
-        full_prompt += (
-            f"\n\n---\nMost Recent Uploaded Document:\n"
-            f"Filename: {file_info.get('name', 'Unknown')}\n"
-            f"Stored In: {stored_in}\n"
-            f"Extracted Content (first 1000 chars):\n{file_info.get('text', '')[:1000]}"
-    )
+        interpreted_reply = file_info.get("summary", "")
+
+        # Save to local persistent metadata store
+        with open("uploaded_documents.json", "r") as f:
+            current_store = json.load(f)
+
+        current_store.append({
+            "filename": uploaded_file.name,
+            "summary": interpreted_reply,
+            "timestamp": datetime.now().isoformat(),
+            "storage": file_info.get("storage", [])
+        })
+
+        with open("uploaded_documents.json", "w") as f:
+            json.dump(current_store, f, indent=2)
+
+        st.success("✅ Metadata successfully saved.")
+    except Exception as e:
+        st.warning(f"⚠️ Failed to store document: {e}")
+
    # Join all target namespaces into a string for display
     where = ", ".join(target_namespaces)
 
@@ -252,4 +266,4 @@ for msg in st.session_state.messages:
 
 # === FOOTER ===
 st.markdown("---")
-st.caption("v1.64 – DT interprets uploaded files and recommends action – Darren Eastland")
+st.caption("v1.65 – DT interprets uploaded files and recommends action – Darren Eastland")
