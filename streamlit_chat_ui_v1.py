@@ -211,55 +211,6 @@ if prompt:
     full_prompt += f"\n\n---\nContext from Reference Documents:\n{doc_context}"
     full_prompt += f"\n\n---\nContext from Persistent Memory:\n{mem_context}"
 
-      if uploaded_file and "last_uploaded_file" in st.session_state:
-        try:
-            file_info = st.session_state["last_uploaded_file"]
-            interpreted_reply = file_info.get("summary", "")
-
-        # Save to local persistent metadata store
-            with open("uploaded_documents.json", "r") as f:
-                current_store = json.load(f)
-
-            current_store.append({
-                "filename": uploaded_file.name,
-                "summary": interpreted_reply,
-                "timestamp": datetime.now().isoformat(),
-                "storage": file_info.get("storage", [])
-            })
-
-            with open("uploaded_documents.json", "w") as f:
-                json.dump(current_store, f, indent=2)
-
-            st.success("✅ Metadata successfully saved.")
-        except Exception as e:
-            st.warning(f"⚠️ Failed to store document: {e}")
-
-   # Join all target namespaces into a string for display
-    where = ", ".join(target_namespaces)
-
-    full_prompt += (
-        f"\n\n---\nMost Recent Uploaded Document:\n"
-        f"Filename: {file_info['name']}\n"
-        f"Storage Location: {where}\n"
-        f"Extracted Content (first 1000 chars):\n{file_info['text'][:1000]}"
-    )
-
-
-    try:
-        messages = [system_prompt] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-        response = openai.ChatCompletion.create(model="gpt-4", messages=messages)
-        reply = response.choices[0].message.content
-        model_used = response.model
-    except Exception as e:
-        reply = f"⚠️ OpenAI error: {e}"
-        model_used = "Unavailable"
-
-    st.chat_message("assistant").markdown(reply)
-    st.markdown(f"*Model used: `{model_used}`*")
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-
-
-# === CHAT HISTORY ===
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
