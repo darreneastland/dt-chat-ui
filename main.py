@@ -1,8 +1,17 @@
 import streamlit as st
-from datetime import datetime
-from components.interface import render_sidebar, handle_file_uploads
-from components.chat_handler import build_system_prompt, get_chat_response
-from components.memory import get_vectorstore, store_to_memory
+st.set_page_config(page_title="DT Modular Chat", page_icon="🧠", layout="centered")
+st.write("✅ DT App Initialising...")
+
+try:
+    from datetime import datetime
+    from components.interface import render_sidebar, handle_file_uploads
+    from components.chat_handler import build_system_prompt, get_chat_response
+    from components.memory import get_vectorstore, store_to_memory
+    st.success("✅ All components imported successfully.")
+except Exception as e:
+    st.error(f"❌ Import error: {e}")
+    st.stop()
+
 
 # === CONFIG ===
 st.set_page_config(page_title="DT Modular Chat", page_icon="🧠", layout="centered")
