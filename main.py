@@ -6,6 +6,8 @@ from components.memory import get_vectorstore, store_to_memory
 
 # === CONFIG ===
 st.set_page_config(page_title="DT Modular Chat", page_icon="🧠", layout="centered")
+st.write("✅ DT App Initialising...")
+
 
 # === SESSION STATE ===
 if "messages" not in st.session_state:
