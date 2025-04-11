@@ -2,7 +2,8 @@ from datetime import datetime
 from langchain_community.vectorstores import Pinecone
 from langchain_community.embeddings import OpenAIEmbeddings
 # - from langchain_community.schema import Document
-from config import settings
+from config.settings import settings 
+
 
 def get_vectorstore(index_name, namespace):
     return Pinecone.from_existing_index(
