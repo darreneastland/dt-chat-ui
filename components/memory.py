@@ -2,7 +2,6 @@ from datetime import datetime
 from langchain_community.vectorstores import Pinecone
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_core.documents import Document
-# - from langchain_community.schema import Document
 from config.settings import settings 
 
 
@@ -13,6 +12,7 @@ def get_vectorstore(index_name, namespace):
         namespace=namespace
     )
 
+
 def store_to_memory(vectorstore, reply_text):
     doc = Document(
         page_content=reply_text,
@@ -22,5 +22,11 @@ def store_to_memory(vectorstore, reply_text):
             "timestamp": datetime.now().isoformat()
         }
     )
-    vectorstore.add_documents([doc])
+
+    try:
+        print("✅ Writing to memory:", reply_text[:200], "..." if len(reply_text) > 200 else "")
+        vectorstore.add_documents([doc])
+        print("✅ Memory write complete.")
+    except Exception as e:
+        print("❌ Memory write failed:", e)
 
