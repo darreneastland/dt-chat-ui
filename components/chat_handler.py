@@ -73,11 +73,15 @@ def get_chat_response(messages, model="gpt-4", temperature=0.3):
     :return: tuple (reply_text, model_name)
     """
     try:
+        valid_models = ["gpt-4", "gpt-4-0613", "gpt-3.5-turbo"]
+        selected_model = model if model in valid_models else "gpt-3.5-turbo"
+
         response = openai.ChatCompletion.create(
-            model=model,
+            model=selected_model,
             messages=messages,
             temperature=temperature
         )
+
         reply = response.choices[0].message.content
         model_used = response.model
     except Exception as e:
