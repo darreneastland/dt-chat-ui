@@ -63,3 +63,25 @@ def build_system_prompt(kryten_mode=False, recent_summaries=None, file_context=N
         base += "\n\n---\nMemory from Past Interactions:\n" + memory_context
 
     return base
+def get_chat_response(messages, model="gpt-4", temperature=0.3):
+    """
+    Sends the message history to OpenAI and returns the assistant's reply.
+
+    :param messages: List of message dictionaries (role/content)
+    :param model: OpenAI model to use (default: gpt-4)
+    :param temperature: Model creativity level
+    :return: tuple (reply_text, model_name)
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            temperature=temperature
+        )
+        reply = response.choices[0].message.content
+        model_used = response.model
+    except Exception as e:
+        reply = f"⚠️ OpenAI error: {e}"
+        model_used = "Unavailable"
+
+    return reply, model_used
