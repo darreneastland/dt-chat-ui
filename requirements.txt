@@ -2,7 +2,7 @@
 streamlit==1.32.2                   # Web interface framework
 openai==0.28.1                      # OpenAI API integration
 langchain==0.1.14                   # LangChain core (for chains, prompts, LLMs)
-langchain-community==0.0.30        # LangChain loaders (new v0.1.x structure)
+langchain-community==0.0.17        # LangChain loaders (new v0.1.x structure)
 
 # === Vector Store / Memory Integration ===
 pinecone-client==3.0.2             # Pinecone vector store client
