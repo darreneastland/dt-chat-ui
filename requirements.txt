@@ -1,17 +1,27 @@
-streamlit==1.32.2
-openai==0.28.1
-langchain==0.1.14
-pinecone-client==3.0.2
+# === Core UI & Framework ===
+streamlit==1.32.2                   # Web interface framework
+openai==0.28.1                      # OpenAI API integration
+langchain==0.1.14                   # LangChain core (for chains, prompts, LLMs)
+langchain-community==0.0.30        # LangChain loaders (new v0.1.x structure)
 
-# Embedding + token handling
-tiktoken==0.5.1
-langchain-community==0.0.30
+# === Vector Store / Memory Integration ===
+pinecone-client==3.0.2             # Pinecone vector store client
 
-# Document loaders & parsers
-pypdf==3.9.1
-pdfminer.six==20221105
-python-docx
-docx2txt==0.8
+# === Embedding + Token Handling ===
+tiktoken==0.5.1                    # Tokenizer for OpenAI embeddings
 
-# Text processing (used for chunking)
-nltk==3.8.1  # Optional but recommended
+# === Document Loaders & Parsing ===
+pypdf==3.9.1                       # PDF parsing (recommended over PyPDF2)
+pdfminer.six==20221105             # Detailed PDF text extraction
+python-docx                        # .docx file parser
+docx2txt==0.8                      # Lightweight DOCX text extraction
+
+# === Text Processing & Chunking ===
+nltk==3.8.1                        # Natural language toolkit for tokenizing, chunking
+
+# === Optional Dev / Logging Utilities ===
+# rich==13.5.2                     # Optional: Enhanced terminal logging (not used in production yet)
+
+# === Compatibility Notes ===
+# - Python runtime: 3.10 (see runtime.txt)
+# - All modules pinned for Streamlit deployment stability
