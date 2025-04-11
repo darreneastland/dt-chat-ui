@@ -52,11 +52,24 @@ if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
+# === MEMORY RETRIEVAL (dt-memory namespace) ===
+try:
+    memory_vectorstore = get_vectorstore("dt-knowledge", namespace="dt-memory")
+    memory_chunks = memory_vectorstore.similarity_search(prompt, k=5)
+    memory_context = "\n".join([doc.page_content for doc in memory_chunks])
+    st.markdown("🧠 Retrieved context from DT memory.")
+except Exception as e:
+    memory_context = ""
+    st.warning(f"⚠️ Memory retrieval failed: {e}")
+
+    
     system_prompt = build_system_prompt(
         kryten_mode=st.session_state.kryten_mode,
         recent_summaries=recent_summaries,
-        file_context=last_uploaded_context
+        file_context=last_uploaded_context,
+        memory_context=memory_context
     )
+
 
     reply, model = get_chat_response(prompt, system_prompt, st.session_state.messages)
     st.chat_message("assistant").markdown(reply)
