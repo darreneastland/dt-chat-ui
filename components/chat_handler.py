@@ -1,5 +1,8 @@
 import openai
-from config import settings
+from config.settings import settings  # ✅ imports the instance of the Settings class
+
+openai.api_key = settings.OPENAI_API_KEY
+
 
 def build_system_prompt(kryten_mode=False, recent_summaries=None, file_context=None):
     base = (
