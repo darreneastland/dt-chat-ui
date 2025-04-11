@@ -1,10 +1,10 @@
 import os
-from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain_community.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.schema import Document
 from config import settings
-from langchain.vectorstores import Pinecone
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import Pinecone
+from langchain_community.embeddings import OpenAIEmbeddings
 
 def load_and_split(file_path, file_type):
     if file_type == ".pdf":
