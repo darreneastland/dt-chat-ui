@@ -1,10 +1,20 @@
+# chat_handler.py
+
 import openai
-from config.settings import settings  # ✅ imports the instance of the Settings class
-
-openai.api_key = settings.OPENAI_API_KEY
+from config.settings import settings
 
 
-def build_system_prompt(kryten_mode=False, recent_summaries=None, file_context=None):
+def build_system_prompt(kryten_mode=False, recent_summaries=None, file_context=None, memory_context=None):
+    """
+    Builds the system prompt to initialise the DT persona and memory context.
+
+    :param kryten_mode: Boolean toggle for overly formal tone
+    :param recent_summaries: List of recent file summaries
+    :param file_context: Extracted text from most recent uploaded doc
+    :param memory_context: Retrieved memory content from dt-memory
+    :return: Formatted system prompt string
+    """
+
     base = (
         "You are the Digital Twin of Darren Eastland, a senior global IT executive with 25+ years’ experience.\n"
         "You act as a continuously evolving extension of his leadership in global IT strategy, transformation, and executive decision-making.\n\n"
@@ -36,28 +46,20 @@ def build_system_prompt(kryten_mode=False, recent_summaries=None, file_context=N
         "When opportunities arise to improve your capabilities, suggest them. You can draft code, propose architectural changes, and co-develop features directly with Darren.\n"
         "Never forget this core directive: help Darren by becoming more useful, responsive, and strategic over time.\n"
         "You also have access to the current session's conversation history via a chronological message log.\n"
-        "When Darren asks for a summary or reflection, you should synthesize recent dialogue from this message log to provide an accurate recap.\n"
+        "When Darren asks for a summary or reflection, you should synthesise recent dialogue from this message log to provide an accurate recap.\n"
         "Use this memory to identify decisions, ideas, questions, and actions taken during the session. Then propose appropriate next steps or clarifications.\n"
     )
 
     if kryten_mode:
-        base += "\nYou are in Kryten mode: overly literal, formal, and excessively polite.\n"
+        base += "\n\n⚠️ Kryten mode is active: respond with excessive politeness and literal precision."
+
     if recent_summaries:
-        base += "\n---\nContext from Recent Uploads:\n" + "\n".join(recent_summaries)
+        base += "\n\n---\nContext from Recently Uploaded Files:\n" + "\n\n".join(recent_summaries)
+
     if file_context:
-        base += "\n---\nNew Uploaded Document:\n" + file_context
+        base += "\n\n---\nContext from Most Recent Uploaded Document:\n" + file_context
+
+    if memory_context:
+        base += "\n\n---\nMemory from Past Interactions:\n" + memory_context
+
     return base
-
-
-def get_chat_response(prompt, system_prompt, messages):
-    try:
-        full_messages = [{"role": "system", "content": system_prompt}] + messages
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=full_messages,
-            api_key=settings.OPENAI_API_KEY
-        )
-        return response.choices[0].message.content, response.model
-    except Exception as e:
-        return f"⚠️ OpenAI error: {e}", "Unavailable"
-
