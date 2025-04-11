@@ -3,8 +3,6 @@ from datetime import datetime
 
 # === PAGE CONFIG (must be first Streamlit command) ===
 st.set_page_config(page_title="DT Modular Chat", page_icon="🧠", layout="centered")
-
-# === INITIAL LOG ===
 st.write("✅ DT App Initialising...")
 
 # === IMPORTS WITH SAFETY CHECK ===
@@ -52,17 +50,21 @@ if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-# === MEMORY RETRIEVAL (dt-memory namespace) ===
-try:
-    memory_vectorstore = get_vectorstore("dt-knowledge", namespace="dt-memory")
-    memory_chunks = memory_vectorstore.similarity_search(prompt, k=5)
-    memory_context = "\n".join([doc.page_content for doc in memory_chunks])
-    st.markdown("🧠 Retrieved context from DT memory.")
-except Exception as e:
-    memory_context = ""
-    st.warning(f"⚠️ Memory retrieval failed: {e}")
+    # === MEMORY RETRIEVAL (dt-memory namespace) ===
+    try:
+        memory_context = ""
+        if isinstance(prompt, str) and prompt.strip():
+            memory_vectorstore = get_vectorstore("dt-knowledge", namespace="dt-memory")
+            memory_chunks = memory_vectorstore.similarity_search(prompt, k=5)
+            memory_context = "\n".join([doc.page_content for doc in memory_chunks])
+            st.markdown("🧠 Retrieved context from DT memory.")
+        else:
+            st.info("No valid query provided for memory search.")
+    except Exception as e:
+        memory_context = ""
+        st.warning(f"⚠️ Memory retrieval failed: {e}")
 
-    
+    # === SYSTEM PROMPT BUILDING ===
     system_prompt = build_system_prompt(
         kryten_mode=st.session_state.kryten_mode,
         recent_summaries=recent_summaries,
@@ -70,13 +72,19 @@ except Exception as e:
         memory_context=memory_context
     )
 
+    # === MODEL RESPONSE GENERATION ===
+    try:
+        full_convo = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+        reply, model = get_chat_response(
+            messages=[{"role": "system", "content": system_prompt}] + full_convo
+        )
+        st.chat_message("assistant").markdown(reply)
+        st.markdown(f"*Model used: `{model}`*")
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+    except Exception as e:
+        st.warning(f"⚠️ OpenAI response failed: {e}")
 
-    reply, model = get_chat_response(prompt, system_prompt, st.session_state.messages)
-    st.chat_message("assistant").markdown(reply)
-    st.markdown(f"*Model used: `{model}`*")
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-
-    # === STORE REPLY TO MEMORY VECTORSTORE ===
+    # === STORE TO MEMORY ===
     try:
         memory_store = get_vectorstore("dt-knowledge", namespace="dt-memory")
         store_to_memory(memory_store, reply)
