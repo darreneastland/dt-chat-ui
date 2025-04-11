@@ -23,8 +23,13 @@ st.markdown(
 )
 
 # === SIDEBAR + FILE HANDLING ===
-uploaded_files = render_sidebar()
-recent_summaries, last_uploaded_context = handle_file_uploads(uploaded_files) if uploaded_files else ([], "")
+uploaded_files = interface.render_sidebar()
+if uploaded_files:
+    st.write("📎 Files received. Starting processing...")
+    summaries, last_uploaded = interface.handle_file_uploads(uploaded_files)
+else:
+    summaries, last_uploaded = [], None
+
 
 # === PROMPT AREA ===
 prompt = st.chat_input("Ask the Digital Twin something...")
