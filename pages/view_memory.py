@@ -37,7 +37,7 @@ try:
         st.subheader("📄 Sample Memory Chunks")
 
         # Retrieve sample chunks by dummy query vector
-        sample = index.query(vector=[0.0]*1536, top_k=35, namespace=namespace, include_metadata=True)
+        sample = index.query(vector=[0.0]*1536, top_k=100, namespace=namespace, include_metadata=True)
 
         for i, match in enumerate(sample.get("matches", [])):
             meta = match.get("metadata", {})
