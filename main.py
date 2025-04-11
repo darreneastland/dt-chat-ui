@@ -26,7 +26,7 @@ if "kryten_mode" not in st.session_state:
 # === UI HEADER ===
 st.title("🧠 Darren's Digital Twin")
 st.markdown(
-    "You are interacting with Darren Eastland’s AI-driven executive assistant. "
+    "You are interacting with Darren Eastland’s AI-driven executive assistant V2. "
     "This assistant reflects Darren's leadership tone, IT strategy expertise, and pragmatic decision-making style."
 )
 
