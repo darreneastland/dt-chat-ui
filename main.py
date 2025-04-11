@@ -78,7 +78,7 @@ if prompt:
         reply, model = get_chat_response(
             messages=[{"role": "system", "content": system_prompt}] + full_convo
         )
-        st.chat_message("assistant").markdown(reply)
+        # st.chat_message("assistant").markdown(reply)
         st.markdown(f"*Model used: `{model}`*")
         st.session_state.messages.append({"role": "assistant", "content": reply})
     except Exception as e:
